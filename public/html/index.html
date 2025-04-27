@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tele-Med - Home</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #394C5C;
+            --secondary-color: #D8E7EE;
+            --accent-color: #97D4F1;
+            --light-bg: #f8f9fa;
+            --text-color: #041A38;
+            --sidebar-text: #394C5C;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1rem;
+            margin: 0.5rem;
+            min-width: 150px;
+        }
+
+        .btn-primary:hover {
+            background-color: #2d3b48;
+            border-color: #2d3b48;
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #2d3b48;
+            text-decoration: underline;
+        }
+
+        .welcome-title {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .user-type-buttons {
+            margin: 2rem 0;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 1rem;
+            text-align: center;
+            background-color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="hero-container">
+            <h1 class="welcome-title">Welcome to Tele-Med</h1>
+
+            <div class="user-type-buttons">
+                <h2 class="mb-4">Are you a:</h2>
+                <div class="d-flex justify-content-center flex-wrap">
+                    <a href="/register?type=doctor" class="btn btn-primary">Doctor</a>
+                    <a href="/register?type=patient" class="btn btn-primary">Patient</a>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <p>Already have an account? <a href="/login">Log in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-5">
+        <p class="mb-0">© 2023 Tele-Med. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

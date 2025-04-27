@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tele-Med - Patient Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Open+Sans:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #394C5C;
+            --secondary-color: #D8E7EE;
+            --accent-color: #97D4F1;
+            --light-bg: #f8f9fa;
+            --text-color: #041A38;
+            --sidebar-text: #394C5C;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+        }
+
+        .sidebar {
+            background-color: var(--secondary-color);
+            color: var(--sidebar-text);
+            min-height: 100vh;
+        }
+
+        .nav-link {
+            color: var(--sidebar-text);
+            font-weight: 500;
+        }
+
+        .nav-link.active {
+            background-color: rgba(13, 110, 253, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .nav-link:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .card-header {
+            background-color: var(--primary-color) !important;
+        }
+
+        .card-header h5 {
+            font-weight: 600;
+            color: white;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(231, 241, 255, 0.3);
+        }
+
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .doctor-card {
+            transition: all 0.3s ease;
+        }
+
+        .doctor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(13, 110, 253, 0.15);
+        }
+
+        .modal-header {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* Special styling for available doctors cards */
+        .doctor-card .card-body {
+            padding: 1.25rem;
+        }
+
+        .doctor-card .specialty-badge {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .alert-prescriptions {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        #doctorSearch {
+            border-color: var(--primary-color);
+        }
+
+        #doctorSearch:focus {
+            box-shadow: 0 0 0 0.25rem rgba(57, 76, 92, 0.25);
+        }
+
+        .specialty-badge {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4">
+                    <h4 class="mb-4">Tele-Med</h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Appointments</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Medical History</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Prescriptions</a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                <div
+                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Patient Dashboard</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary">Today</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary">Week</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="doctorSearch"
+                                        placeholder="Search doctors by name or specialty...">
+                                    <button class="btn btn-primary" id="searchDoctorsBtn">Search</button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-secondary" id="resetSearchBtn">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Appointments -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Upcoming Appointments</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Doctor</th>
+                                        <th>Speciality</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointmentsTable">
+                                    <!-- Appointments will be loaded here via JavaScript -->
+                                    <tr>
+                                        <td colspan="5" class="text-center">No upcoming appointments</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Doctors -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Available Doctors</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="doctorsList">
+                            <!-- Doctors will be loaded here via JavaScript -->
+                            <div class="col-12 text-center">Loading doctors...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4 mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">My Prescriptions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="prescriptionsContainer">
+
+                            <div class="alert alert-prescriptions">No active prescriptions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointment Modal -->
+    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Book Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="appointmentForm">
+                        <input type="hidden" id="doctorId">
+                        <div class="mb-3">
+                            <label for="appointmentDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="appointmentDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="appointmentTime" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="appointmentTime" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="appointmentDuration" class="form-label">Duration (minutes)</label>
+                            <select class="form-select" id="appointmentDuration">
+                                <option value="30">30 minutes</option>
+                                <option value="60">60 minutes</option>
+                                <option value="90">90 minutes</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="appointmentReason" class="form-label">Reason</label>
+                            <textarea class="form-control" id="appointmentReason" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmAppointment">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/patient.js"></script>
+</body>
+
+</html>

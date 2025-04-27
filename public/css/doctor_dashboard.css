@@ -1,0 +1,25 @@
+        body {
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+
+        .sidebar {
+            background-color: #D8E7EE;
+            color: white;
+            min-height: 100vh;
+            color: #394C5C;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .patient-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+
+        .badge-consultation {
+            background-color: #6f42c1;
+        }
