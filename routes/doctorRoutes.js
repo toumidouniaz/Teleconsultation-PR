@@ -88,6 +88,7 @@ router.get('/dashboard', authenticateUser, authorizeDoctor, async (req, res) => 
             })),
             recentPatients: recentPatients.map(patient => ({
                 id: patient.fhir_id,
+                db_id: patient.user_id,
                 name: patient.patient_name,
                 age: patient.patient_age,
             }))
@@ -105,46 +106,46 @@ router.get('/dashboard', authenticateUser, authorizeDoctor, async (req, res) => 
 
 // Create prescription (as FHIR MedicationRequest)
 router.post('/prescriptions', authenticateUser, authorizeDoctor, async (req, res) => {
-    const { patient_id, medication, dosage, instructions } = req.body;
+    const { patient_id, medication, dosage, frequency, duration, instructions, is_active, appointment_id } = req.body;
 
     try {
-        // First get patient and doctor data
-        const [[patient], [doctor]] = await Promise.all([
-            pool.query('SELECT fhir_id FROM patients WHERE id = ?', [patient_id]),
-            pool.query('SELECT fhir_id FROM doctors WHERE id = ?', [req.user.doctorId])
-        ]);
-
-        if (!patient || !doctor) {
-            return res.status(404).json(fhirUtils.createOperationOutcome("error", "not-found", "Patient or doctor not found"));
+        // Validate required fields
+        if (!patient_id || !medication || !dosage || !frequency || !duration) {
+            return res.status(400).json(fhirUtils.createOperationOutcome("error", "required", "Missing required fields"));
         }
 
         // Create in database
         const [result] = await pool.query(`
             INSERT INTO prescriptions 
-            (patient_id, doctor_id, prescription_date, medication, dosage, instructions, fhir_id)
-            VALUES (?, ?, CURDATE(), ?, ?, ?, ?)
+            (patient_id, doctor_id, appointment_id, prescription_date, 
+             medication, dosage, frequency, duration, instructions, is_active, fhir_id)
+            VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)
         `, [
             patient_id,
             req.user.doctorId,
+            appointment_id || null,
             medication,
             dosage,
-            instructions,
+            frequency,
+            duration,
+            instructions || null,
+            is_active !== false, // Default to true if not specified
             uuidv4()
         ]);
 
-        // Get the created prescription
-        const [prescription] = await pool.query(`
-            SELECT pr.*, 
-                   p.fhir_id AS patient_fhir_id,
+        // Get the created prescription with patient and doctor details
+        const [[prescription]] = await pool.query(`
+            SELECT p.*, 
+                   pt.fhir_id AS patient_fhir_id,
                    d.fhir_id AS doctor_fhir_id
-            FROM prescriptions pr
-            JOIN patients p ON pr.patient_id = p.id
-            JOIN doctors d ON pr.doctor_id = d.id
-            WHERE pr.id = ?
+            FROM prescriptions p
+            JOIN patients pt ON p.patient_id = pt.user_id
+            JOIN doctors d ON p.doctor_id = d.user_id
+            WHERE p.id = ?
         `, [result.insertId]);
 
         // Return as FHIR MedicationRequest
-        const medicationRequest = fhirUtils.createMedicationRequestResource(prescription[0]);
+        const medicationRequest = fhirUtils.createMedicationRequestResource(prescription);
         res.status(201).type('application/fhir+json').json(medicationRequest);
     } catch (err) {
         console.error(err);
@@ -178,6 +179,25 @@ router.put('/appointments/:id/status', authenticateUser, authorizeDoctor, async 
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// In your routes
+router.get('/chat/history', authenticateUser, async (req, res) => {
+    try {
+        const { consultationId } = req.query;
+        const [messages] = await pool.query(`
+            SELECT cm.*, u.first_name, u.last_name 
+            FROM chat_messages cm
+            JOIN users u ON cm.sender_id = u.id
+            WHERE cm.consultation_id = ?
+            ORDER BY cm.sent_at ASC
+        `, [consultationId]);
+
+        res.json(messages);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load messages' });
     }
 });
 

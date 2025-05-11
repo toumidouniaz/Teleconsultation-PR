@@ -76,7 +76,7 @@ router.get('/dashboard', authenticateUser, authorizePatient, async (req, res) =>
             })),
 
             availableDoctors: availableDoctors.map(doctor => ({
-                id: doctor.fhir_id,
+                id: doctor.user_id,
                 name: doctor.doctor_name,
                 speciality: doctor.doctor_speciality
             }))
@@ -243,6 +243,52 @@ router.delete('/appointments/:id', authenticateUser, authorizePatient, async (re
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get single prescription
+router.get('/prescriptions/:id', authenticateUser, authorizePatient, async (req, res) => {
+    try {
+        const [prescription] = await pool.query(`
+            SELECT p.*, 
+                   CONCAT(u.first_name, ' ', u.last_name) AS doctor_name,
+                   d.license_number AS doctor_license,
+                   CONCAT(up.first_name, ' ', up.last_name) AS patient_name
+            FROM prescriptions p
+            JOIN doctors d ON p.doctor_id = d.user_id
+            JOIN users u ON d.user_id = u.id
+            JOIN patients pa ON p.patient_id = pa.user_id
+            JOIN users up ON pa.user_id = up.id
+            WHERE p.id = ? AND p.patient_id = ?
+        `, [req.params.id, req.user.patientId]);
+
+        if (prescription.length === 0) {
+            return res.status(404).json({ error: 'Prescription not found' });
+        }
+
+        res.json(prescription[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// In your routes
+router.get('/chat/history', authenticateUser, async (req, res) => {
+    try {
+        const { consultationId } = req.query;
+        const [messages] = await pool.query(`
+            SELECT cm.*, u.first_name, u.last_name 
+            FROM chat_messages cm
+            JOIN users u ON cm.sender_id = u.id
+            WHERE cm.consultation_id = ?
+            ORDER BY cm.sent_at ASC
+        `, [consultationId]);
+
+        res.json(messages);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load messages' });
     }
 });
 

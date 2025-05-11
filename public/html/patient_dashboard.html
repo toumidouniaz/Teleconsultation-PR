@@ -9,6 +9,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Open+Sans:wght@400;600&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
             --primary-color: #394C5C;
@@ -144,6 +146,72 @@
             padding: 0.35em 0.65em;
             font-size: 0.85em;
         }
+
+        .prescription-card {
+            transition: all 0.2s ease;
+        }
+
+        .prescription-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: rgba(151, 212, 241, 0.1);
+        }
+
+        #prescriptionModalBody h6 {
+            color: #394C5C;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        #prescriptionModalBody p {
+            margin-bottom: 1rem;
+        }
+
+        /* Chat Styles */
+        .chat-messages {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .unread-chat {
+            background-color: rgba(151, 212, 241, 0.2);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        #chatModal .modal-body {
+            min-height: 400px;
+        }
+
+        /* Floating chat button */
+        #openChatBtn {
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #openChatBtn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s;
+        }
+
+        .chat-btn.disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Animation for loading state */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .bi-hourglass {
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 
@@ -167,9 +235,8 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#">Prescriptions</a>
                         </li>
-                        <li class="nav-item mt-4">
-                            <a class="nav-link" href="/logout">Logout</a>
-                        </li>
+                        <!-- In your patient_dashboard.html -->
+                        <button onclick="logout()" class="btn btn-danger">Logout</button>
                     </ul>
                 </div>
             </div>
@@ -301,7 +368,35 @@
         </div>
     </div>
 
+    <!-- Prescription View Modal -->
+    <div class="modal fade" id="prescriptionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="prescriptionModalTitle">Prescription Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="prescriptionModalBody">
+                    <!-- Content will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="downloadPrescriptionPdf">Download PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Chat Button -->
+    <a class="btn btn-success position-fixed rounded-circle chat-btn"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px;" id="openChatBtn" href="/patient/chat"
+        title="Open Chat">
+        <i class="bi bi-chat-dots" style="font-size: 1.5rem;"></i>
+    </a>
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth.js"></script>
     <script src="../js/patient.js"></script>
 </body>
 

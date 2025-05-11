@@ -158,3 +158,33 @@ document.querySelectorAll('[name="confirmPassword"]').forEach(input => {
         }
     });
 });
+
+// Add this to auth.js
+function logout() {
+    // Clear local storage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+
+    // Send logout request to server
+    fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include' // Important for session cookies
+    })
+        .then(response => {
+            if (response.ok) {
+                // Redirect to login page after successful logout
+                window.location.href = '/login';
+            } else {
+                throw new Error('Logout failed');
+            }
+        })
+        .catch(error => {
+            console.error('Logout error:', error);
+            // Even if server logout fails, clear client-side and redirect
+            window.location.href = '/login';
+        });
+}
+
+// Make the logout function available globally if needed
+window.logout = logout;

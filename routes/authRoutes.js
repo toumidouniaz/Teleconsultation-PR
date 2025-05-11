@@ -22,4 +22,6 @@ router.get('/verify', authenticateUser, (req, res) => {
     });
 });
 
+router.post('/logout', authenticateUser, authController.logout);
+
 module.exports = router;

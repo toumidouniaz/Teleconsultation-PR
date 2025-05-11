@@ -9,6 +9,7 @@ const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('./db');
 const fhirUtils = require('./fhirUtils');
+const jwt = require('jsonwebtoken');
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
@@ -27,9 +28,8 @@ app.use(session({
     }
 }));
 
-
 app.use((req, res, next) => {
-    const allowedOrigins = ['http://localhost:3000'];
+    const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
     const origin = req.headers.origin;
 
     if (allowedOrigins.includes(origin)) {
@@ -151,20 +151,368 @@ app.get('/patient/dashboard', (req, res) => {
 app.get('/doctor/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'html', 'doctor_dashboard.html'));
 });
+app.get('/doctor/chat', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'html', 'chat.html'));
+});
 
-// WebSocket Setup
+app.get('/patient/chat', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'html', 'chat.html'));
+});
+
+app.get('/api/chat/history', async (req, res) => {
+    try {
+        const { userId, userType, contactId, contactType, limit = 50 } = req.query;
+
+        // Validate input
+        if (!userId || !userType || !contactId || !contactType) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const [messages] = await pool.query(`
+            SELECT 
+                cm.*,
+                u.first_name as sender_first_name,
+                u.last_name as sender_last_name,
+                IFNULL(d.speciality, NULL) as sender_speciality
+            FROM chat_messages cm
+            JOIN users u ON cm.sender_id = u.id
+            LEFT JOIN doctors d ON cm.sender_type = 'doctor' AND cm.sender_id = d.user_id
+            WHERE (
+                (cm.sender_id = ? AND cm.sender_type = ? AND cm.receiver_id = ? AND cm.receiver_type = ?)
+                OR 
+                (cm.receiver_id = ? AND cm.receiver_type = ? AND cm.sender_id = ? AND cm.sender_type = ?)
+            )
+            ORDER BY cm.created_at DESC
+            LIMIT ?
+        `, [
+            userId, userType, contactId, contactType,
+            userId, userType, contactId, contactType,
+            parseInt(limit)
+        ]);
+
+        res.json(messages.reverse());
+    } catch (err) {
+        console.error('Chat history error:', err);
+        res.status(500).json({ error: 'Failed to load chat history' });
+    }
+});
+
+app.get('/api/chat/contacts', async (req, res) => {
+    try {
+        const { userId, userType } = req.query;
+
+        if (!userId || !userType) {
+            return res.status(400).json({ error: 'Missing user parameters' });
+        }
+
+        // First get all chat conversations from the chats table
+        const [conversations] = await pool.query(`
+            SELECT 
+                c.id as chat_id,
+                c.patient_id,
+                c.doctor_id,
+                c.last_message_at,
+                IF(? = 'doctor', p.user_id, d.user_id) as contact_user_id,
+                IF(? = 'doctor', 'patient', 'doctor') as contact_type
+            FROM chats c
+            JOIN patients p ON c.patient_id = p.user_id
+            JOIN doctors d ON c.doctor_id = d.user_id
+            WHERE (? = 'doctor' AND c.doctor_id = ?)
+               OR (? = 'patient' AND c.patient_id = ?)
+            ORDER BY c.last_message_at DESC
+        `, [userType, userType, userType, userId, userType, userId]);
+
+        // Then enrich with user details and unread counts
+        const contacts = await Promise.all(conversations.map(async conv => {
+            const [user] = await pool.query(`
+                SELECT 
+                    u.id, 
+                    u.first_name, 
+                    u.last_name,
+                    ${conv.contact_type === 'doctor' ? 'd.speciality' : 'NULL as speciality'}
+                FROM users u
+                ${conv.contact_type === 'doctor' ? 'LEFT JOIN doctors d ON u.id = d.user_id' : ''}
+                WHERE u.id = ?
+            `, [conv.contact_user_id]);
+
+            const [unread] = await pool.query(`
+                SELECT COUNT(*) as count
+                FROM chat_messages
+                WHERE sender_id = ? 
+                  AND sender_type = ?
+                  AND receiver_id = ?
+                  AND receiver_type = ?
+                  AND is_read = FALSE
+            `, [
+                conv.contact_user_id,
+                conv.contact_type,
+                userId,
+                userType
+            ]);
+
+            return {
+                ...user[0],
+                chat_id: conv.chat_id,
+                unreadCount: unread[0].count,
+                last_message_at: conv.last_message_at,
+                type: conv.contact_type
+            };
+        }));
+
+        res.json(contacts);
+    } catch (err) {
+        console.error('Chat contacts error:', err);
+        res.status(500).json({ error: 'Failed to load contacts' });
+    }
+});
+
+app.get('/api/chat/contacts/search', async (req, res) => {
+    try {
+        const { userId, userType, query } = req.query;
+
+        // Validate inputs
+        if (!userId || !userType || !query) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        if (query.length < 2) {
+            return res.status(400).json({ error: 'Search query too short (min 2 characters)' });
+        }
+
+        const isDoctor = userType.toLowerCase() === 'doctor';
+        const contactType = isDoctor ? 'patient' : 'doctor';
+        const searchParam = `%${query}%`;
+
+        // Main query
+        const
+            sqlQuery = `
+        SELECT 
+            u.id,
+            u.first_name,
+            u.last_name,
+            ${isDoctor ? 'NULL as speciality' : 'd.speciality'},
+            u.role as type,
+            (
+                SELECT COUNT(*) 
+                FROM chat_messages 
+                WHERE sender_id = u.id 
+                  AND sender_type = ?
+                  AND receiver_id = ?
+                  AND receiver_type = ?
+                  AND is_read = FALSE
+            ) as unread_count,
+            (
+                SELECT id 
+                FROM chats 
+                WHERE ${isDoctor ? 'doctor_id = ? AND patient_id = u.id' : 'patient_id = ? AND doctor_id = u.id'}
+                LIMIT 1
+            ) as chat_id
+        FROM users u
+        ${isDoctor ? 'JOIN patients p ON u.id = p.user_id' : 'JOIN doctors d ON u.id = d.user_id'}
+        WHERE u.role = ?
+          AND u.id != ?
+          AND (u.first_name LIKE ? OR u.last_name LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?)
+        ORDER BY u.first_name, u.last_name
+    `;
+
+        const params = [
+            contactType, userId, userType,  // For unread_count subquery
+            userId,                        // For chat_id subquery
+            contactType,                   // For role filter
+            userId,                        // For u.id != ?
+            searchParam, searchParam, searchParam  // For search terms
+        ];
+
+        const [contacts] = await pool.query(sqlQuery, params);
+
+        // Format results to match frontend expectations
+        const formattedContacts = contacts.map(contact => ({
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            speciality: contact.speciality || null,
+            type: contact.type,
+            unreadCount: contact.unread_count || 0,
+            chat_id: contact.chat_id || null
+        }));
+
+        res.json(formattedContacts);
+
+    } catch (err) {
+        console.error('Search error:', err);
+        res.status(500).json({
+            error: 'Failed to search contacts',
+            details: err.message
+        });
+    }
+});
+
+io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error('No token provided'));
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Validate required fields
+        if (!decoded.userId || !decoded.role) {
+            throw new Error('Invalid token payload');
+        }
+
+        const userType = decoded.role.toLowerCase();
+        if (!['doctor', 'patient'].includes(userType)) {
+            throw new Error('Invalid user type');
+        }
+
+        // Attach user info to socket
+        socket.user = {
+            id: decoded.userId,
+            type: userType
+        };
+
+        next();
+    } catch (err) {
+        next(new Error('Authentication failed'));
+    }
+});
+
 io.on('connection', (socket) => {
-    console.log('New user connected:', socket.id);
+    console.log(`Authenticated ${socket.user.type} connected:`, socket.user.id);
 
-    socket.on('join-consultation', (consultationId) => {
-        socket.join(consultationId);
-        console.log(`User ${socket.id} joined consultation ${consultationId}`);
+    // Join user-specific room
+    socket.join(`user_${socket.user.type}_${socket.user.id}`);
+
+    // Message handling
+    socket.on('private-message', async (data) => {
+        try {
+            // Validate input
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid message format');
+            }
+
+            const { recipientId, recipientType, message } = data;
+
+            if (!recipientId || !recipientType || !message) {
+                throw new Error('Missing required fields');
+            }
+
+            if (typeof message !== 'string' || message.length > 1000) {
+                throw new Error('Invalid message content');
+            }
+
+            // Ensure chat exists
+            const chatId = await ensureChatExists(
+                socket.user.id,
+                socket.user.type,
+                recipientId,
+                recipientType
+            );
+
+            // Save message
+            const [result] = await pool.query(
+                `INSERT INTO chat_messages 
+                 (sender_id, sender_type, receiver_id, receiver_type, message)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [socket.user.id, socket.user.type, recipientId, recipientType, message]
+            );
+
+            // Update chat timestamp
+            await pool.query(
+                `UPDATE chats 
+                 SET last_message_at = NOW()
+                 WHERE id = ?`,
+                [chatId]
+            );
+
+            // Get sender info
+            const [user] = await pool.query(
+                `SELECT first_name, last_name FROM users WHERE id = ?`,
+                [socket.user.id]
+            );
+
+            if (!user) throw new Error('Sender not found');
+
+            // Prepare message payload
+            const messagePayload = {
+                id: result.insertId,
+                chat_id: chatId,
+                sender_id: socket.user.id,
+                sender_type: socket.user.type,
+                sender_name: `${user.first_name} ${user.last_name}`,
+                message,
+                timestamp: new Date()
+            };
+
+            // Deliver message
+            io.to(`user_${recipientType}_${recipientId}`)
+                .emit('private-message', messagePayload);
+
+            // Confirm to sender
+            socket.emit('message-sent', messagePayload);
+
+        } catch (err) {
+            console.error('Message error:', err.message);
+            socket.emit('message-error', {
+                error: err.message,
+                code: 'MESSAGE_FAILED'
+            });
+        }
     });
 
+    // Typing indicator
+    socket.on('typing', ({ recipientId, recipientType, isTyping }) => {
+        // Basic validation
+        if (typeof isTyping !== 'boolean' || !recipientId || !recipientType) return;
+
+        io.to(`user_${recipientType}_${recipientId}`).emit('typing', {
+            senderId: socket.user.id,
+            senderType: socket.user.type,
+            isTyping
+        });
+    });
+
+    // Disconnect handler
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+        console.log(`${socket.user.type} disconnected:`, socket.user.id);
     });
 });
+
+// Helper function to ensure chat exists
+async function ensureChatExists(userId, userType, contactId, contactType) {
+    try {
+        // Try to find existing chat
+        const [existingChat] = await pool.query(`
+                SELECT id FROM chats 
+                WHERE ((doctor_id = ? AND patient_id = ?) OR (doctor_id = ? AND patient_id = ?))
+                LIMIT 1
+            `, [
+            userType === 'doctor' ? userId : contactId,
+            userType === 'patient' ? userId : contactId,
+            contactType === 'doctor' ? contactId : userId,
+            contactType === 'patient' ? contactId : userId
+        ]);
+
+        if (existingChat.length > 0) {
+            return existingChat[0].id;
+        }
+
+        // Create new chat if none exists
+        const newChatId = uuidv4();
+        await pool.query(`
+                INSERT INTO chats (id, doctor_id, patient_id)
+                VALUES (?, ?, ?)
+            `, [
+            newChatId,
+            userType === 'doctor' ? userId : contactId,
+            userType === 'patient' ? userId : contactId
+        ]);
+
+        return newChatId;
+    } catch (err) {
+        console.error('Error ensuring chat exists:', err);
+        throw err;
+    }
+}
 
 // Helper Functions
 function getLocalId(fhirReference) {
@@ -192,7 +540,6 @@ http.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
     await testDatabaseConnection();
 });
-
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

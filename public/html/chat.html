@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tele-Med - Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Open+Sans:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #394C5C;
+            --secondary-color: #D8E7EE;
+            --accent-color: #97D4F1;
+            --light-bg: #f8f9fa;
+            --text-color: #041A38;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .chat-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+        }
+
+        .chat-sidebar {
+            background-color: var(--secondary-color);
+            height: calc(100vh - 150px);
+            overflow-y: auto;
+        }
+
+        .chat-messages {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding: 15px;
+            background-color: white;
+        }
+
+        .message-input-container {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .unread-chat {
+            background-color: rgba(151, 212, 241, 0.2);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .typing-indicator {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar (same as in dashboard) -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4">
+                    <h4 class="mb-4">Tele-Med</h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.html">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="appointments.html">Appointments</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="medical-history.html">Medical History</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="prescriptions.html">Prescriptions</a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Chat Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h2 class="mb-0">Messages</h2>
+                    </div>
+
+                    <div class="row">
+                        <!-- Contacts List -->
+                        <div class="col-md-4 chat-sidebar p-0">
+                            <div class="input-group p-3">
+                                <input type="text" class="form-control" placeholder="Search..." id="chatSearch">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="list-group list-group-flush" id="chatContacts">
+                                <!-- Contacts will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Chat Area -->
+                        <div class="col-md-8 p-0">
+                            <div class="d-flex flex-column h-100">
+                                <div class="chat-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0" id="chatTitle">Select a contact to start chatting</h5>
+                                </div>
+
+                                <div class="chat-messages" id="chatMessages">
+                                    <!-- Messages will appear here -->
+                                    <div class="text-center text-muted mt-5">
+                                        Select a contact to view messages
+                                    </div>
+                                </div>
+
+                                <div class="message-input-container">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Type your message..."
+                                            id="chatMessageInput" disabled>
+                                        <button class="btn btn-success" type="button" id="sendMessageBtn"
+                                            disabled>Send</button>
+                                    </div>
+                                    <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                                        Contact is typing...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- In the script section at the bottom of chat.html -->
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                console.log('No token found, redirecting to login');
+                window.location.href = '/login';
+                return;
+            }
+
+            // Safely decode the token
+            let payload = {};
+            try {
+                const tokenParts = token.split('.');
+                if (tokenParts.length !== 3) throw new Error('Invalid token format');
+
+                // Fix base64 decoding
+                payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                console.log('Decoded token payload:', payload);
+            } catch (err) {
+                console.error('Failed to decode token:', err);
+                localStorage.removeItem('authToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            // Normalize user data - adjust these based on your actual token structure
+            const currentUser = {
+                id: payload.id || payload.userId,
+                userId: payload.id || payload.userId,
+                userType: payload.role || payload.type || 'patient' // default fallback
+            };
+
+            if (!currentUser.userId || !currentUser.userType) {
+                console.error('Token missing required fields:', currentUser);
+                localStorage.removeItem('authToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            // Connect to Socket.IO with error handling
+            const socket = io({
+                auth: {
+                    token: localStorage.getItem('authToken')
+                },
+                transports: ['websocket'] // Force WebSocket transport
+            });
+
+            socket.on('connect_error', (err) => {
+                console.error('Socket connection error:', err);
+                if (err.message === 'No token provided') {
+                    window.location.href = '/login';
+                }
+            });
+            // Authenticate with socket
+            socket.emit('authenticate', {
+                userId: currentUser.userId,
+                userType: currentUser.userType
+            });
+
+            // Load the correct chat module
+            try {
+                if (currentUser.userType === 'doctor') {
+                    const { ChatModuleDoctor } = await import('../js/chatModuleDoctor.js');
+                    window.chatModule = new ChatModuleDoctor(socket, currentUser);
+                } else {
+                    const { ChatModule } = await import('../js/chatModulePatient.js');
+                    window.chatModule = new ChatModule(socket, currentUser);
+                }
+
+                // Load contacts
+                window.chatModule.loadChatContacts();
+            } catch (err) {
+                console.error('Failed to load chat module:', err);
+                alert('Failed to initialize chat. Please try again.');
+            }
+
+            // Cleanup on unload
+            window.addEventListener('beforeunload', () => {
+                if (window.chatModule) {
+                    window.chatModule.destroy();
+                }
+                socket.disconnect();
+            });
+        });
+    </script>
+
+</body>
+
+</html>

@@ -214,3 +214,28 @@ exports.getCurrentUser = async (req, res) => {
         res.status(500).json({ error: "Failed to get user data" });
     }
 };
+
+exports.logout = async (req, res) => {
+    try {
+        // Clear the session
+        req.session.destroy(err => {
+            if (err) {
+                console.error('Logout error:', err);
+                return res.status(500).json({ error: 'Failed to logout' });
+            }
+
+            // Clear the cookie
+            res.clearCookie('connect.sid', {
+                path: '/',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+            });
+
+            return res.status(200).json({ message: 'Logged out successfully' });
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Server error during logout' });
+    }
+};
