@@ -7,6 +7,8 @@
     <title>Tele-Med - Home</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #394C5C;
@@ -23,89 +25,285 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        .hero-container {
-            max-width: 800px;
-            margin: auto;
-            padding: 2rem;
-            text-align: center;
+        .navbar-custom {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 1rem;
         }
 
-        .btn-primary {
+        .nav-user-type {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-user-type .btn {
+            padding: 0.5rem 1.25rem;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-user-type .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .nav-user-type .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .nav-user-type .btn-primary {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
-            padding: 0.75rem 1.5rem;
-            font-size: 1.1rem;
-            margin: 0.5rem;
-            min-width: 150px;
         }
 
-        .btn-primary:hover {
-            background-color: #2d3b48;
-            border-color: #2d3b48;
-        }
-
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: #2d3b48;
-            text-decoration: underline;
+        .hero-section {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, white 100%);
+            padding: 3rem 0;
+            margin-bottom: 3rem;
         }
 
         .welcome-title {
             color: var(--primary-color);
-            margin-bottom: 2rem;
-            font-weight: 600;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
         }
 
-        .user-type-buttons {
-            margin: 2rem 0;
+        .description-text {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
+        .features-container {
+            padding: 2rem 0;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            margin-bottom: 3rem;
+            font-weight: 600;
+            position: relative;
+            text-align: center;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 4px;
+            background: var(--accent-color);
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            height: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-top: 4px solid var(--accent-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .feature-description {
+            color: var(--text-color);
+            opacity: 0.9;
         }
 
         footer {
             margin-top: auto;
-            padding: 1rem;
-            text-align: center;
+            padding: 2rem 0;
             background-color: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .cta-section {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 3rem 0;
+            margin-top: 3rem;
+            border-radius: 10px;
+        }
+
+        .cta-title {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-light {
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-light:hover {
+            background-color: white;
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="hero-container">
-            <h1 class="welcome-title">Welcome to Tele-Med</h1>
-
-            <div class="user-type-buttons">
-                <h2 class="mb-4">Are you a:</h2>
-                <div class="d-flex justify-content-center flex-wrap">
-                    <a href="/register?type=doctor" class="btn btn-primary">Doctor</a>
-                    <a href="/register?type=patient" class="btn btn-primary">Patient</a>
+    <!-- Navigation Bar with User Type Selection -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#" style="color: var(--primary-color);">
+                <i class="fas fa-clinic-medical me-2"></i>Tele-Med
+            </a>
+            <div class="d-flex align-items-center">
+                <div class="nav-user-type me-3">
+                    <span class="me-2" style="color: var(--primary-color);">I am a:</span>
+                    <a href="/register?type=doctor" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user-md me-1"></i>Doctor
+                    </a>
+                    <a href="/register?type=patient" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user me-1"></i>Patient
+                    </a>
                 </div>
-            </div>
-
-            <div class="mt-5">
-                <p>Already have an account? <a href="/login">Log in</a></p>
+                <a href="/login" class="btn btn-primary btn-sm">
+                    <i class="fas fa-sign-in-alt me-1"></i>Login
+                </a>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <footer class="mt-5">
-        <p class="mb-0">© 2023 Tele-Med. All rights reserved.</p>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="welcome-title">Revolutionizing Healthcare with Telemedicine</h1>
+            <p class="description-text">
+                Tele-Med provides a secure, convenient platform connecting patients with healthcare professionals
+                through virtual consultations. Our solution offers comprehensive telemedicine
+                services with real-time health monitoring, digital prescriptions, and seamless communication -
+                all from the comfort of your home.
+            </p>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-container">
+        <div class="container">
+            <h2 class="section-title">Our Comprehensive Features</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h3 class="feature-title">Secure Video Consultations</h3>
+                        <p class="feature-description">
+                            High-definition, encrypted video calls that meet medical privacy standards for confidential
+                            consultations.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3 class="feature-title">Real-time Messaging</h3>
+                        <p class="feature-description">
+                            Instant secure messaging during and between consultations for continuous care.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <h3 class="feature-title">Health Data Dashboard</h3>
+                        <p class="feature-description">
+                            View and share real-time health metrics with your healthcare provider during consultations.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-prescription"></i>
+                        </div>
+                        <h3 class="feature-title">Digital Prescriptions</h3>
+                        <p class="feature-description">
+                            Physicians can create, sign, and send prescriptions electronically to your preferred
+                            pharmacy.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 class="feature-title">Appointment Management</h3>
+                        <p class="feature-description">
+                            Easy scheduling, rescheduling, and calendar integration for all your medical appointments.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="cta-section">
+        <div class="container text-center">
+            <h2 class="cta-title">Ready to Experience Modern Healthcare?</h2>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/register?type=patient" class="btn btn-light">
+                    <i class="fas fa-user me-2"></i>Register as Patient
+                </a>
+                <a href="/register?type=doctor" class="btn btn-light">
+                    <i class="fas fa-user-md me-2"></i>Doctor Sign Up
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0">© 2025 Tele-Med. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="mb-0">HIPAA & GDPR Compliant • End-to-End Encrypted</p>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <!-- Bootstrap JS Bundle with Popper -->

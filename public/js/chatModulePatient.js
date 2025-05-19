@@ -121,6 +121,7 @@ export class ChatModule {
                 return;
             }
 
+            // Use the same endpoint as the doctor module
             const response = await fetch('/api/chat/contacts', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -174,7 +175,9 @@ export class ChatModule {
         if (sendButton) sendButton.disabled = false;
 
         try {
+            // Use the updated endpoint format
             const response = await fetch(`/api/chat/history?userId=${this.currentUser.id}&userType=${this.currentUser.userType}&contactId=${contact.id}&contactType=${this.currentUser.userType === 'doctor' ? 'patient' : 'doctor'}`);
+
             if (!response.ok) throw new Error('Failed to load chat history');
 
             const messages = await response.json();
@@ -208,17 +211,26 @@ export class ChatModule {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // In both modules, update the sendMessage function:
     sendMessage() {
         const input = document.getElementById('chatMessageInput');
         const message = input?.value.trim();
 
         if (message && this.currentChatContact) {
-            // Emit with consistent structure
-            this.socket.emit('private-message', {
+            const messageData = {
                 recipientId: this.currentChatContact.id,
-                recipientType: this.currentUser.userType === 'patient' ? 'doctor' : 'patient', // Fixed logic
-                message: message
-            });
+                recipientType: this.currentUser.userType === 'doctor' ? 'patient' : 'doctor',
+                message: message,
+                senderId: this.currentUser.id,
+                senderType: this.currentUser.userType
+            };
+
+            // If this is an appointment chat
+            if (this.currentChatContact.appointmentId) {
+                messageData.appointmentId = this.currentChatContact.appointmentId;
+            }
+
+            this.socket.emit('chatMessage', messageData);
 
             // Optimistic UI update
             this.addMessageToUI({

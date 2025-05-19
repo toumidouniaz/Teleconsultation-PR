@@ -1,6 +1,5 @@
 let currentUser = null;
 
-window.showToast = showToast;
 // Central authentication verification
 async function verifyAuthentication() {
     try {
@@ -10,7 +9,12 @@ async function verifyAuthentication() {
         }
 
         // Decode token to get user info
-        currentUser = JSON.parse(atob(token.split('.')[1]));
+        try {
+            currentUser = JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            console.error('Failed to decode token:', e);
+            throw new Error('Invalid token format');
+        }
 
         // Verify token with server
         const response = await fetch('/api/auth/verify', {
@@ -27,7 +31,7 @@ async function verifyAuthentication() {
     } catch (error) {
         console.error('Authentication check failed:', error);
         clearAuthData();
-        window.location.href = '/login';
+        window.location.href = '/login?error=' + encodeURIComponent(error.message);
         return null;
     }
 }
@@ -42,66 +46,156 @@ function clearAuthData() {
 // Main initialization flow
 async function initializeApp() {
     try {
+        console.log('Initializing doctor dashboard...');
+
         // 1. Verify authentication
         const auth = await verifyAuthentication();
         if (!auth) return;
 
-        // 2. Load dashboard data
-        await loadDashboardData();
+        console.log('Authentication verified, loading dashboard data...');
+
+        // 2. Load dashboard data with retry logic
+        await loadDashboardDataWithRetry(3); // Retry up to 3 times
+
+        console.log('Dashboard initialized successfully');
     } catch (error) {
         console.error('App initialization failed:', error);
-        clearAuthData();
-        window.location.href = '/login';
+        showToast(`Failed to initialize dashboard: ${error.message}`, 'error');
+
+        // If it's an authentication error, redirect to login
+        if (error.message.includes('auth') || error.message.includes('token')) {
+            clearAuthData();
+            window.location.href = '/login';
+        }
     }
 }
 
-// Dashboard data loading
+// Enhanced dashboard loading with retry capability
+async function loadDashboardDataWithRetry(maxRetries = 3) {
+    let retryCount = 0;
+
+    while (retryCount < maxRetries) {
+        try {
+            const data = await loadDashboardData();
+            return data;
+        } catch (error) {
+            retryCount++;
+            console.error(`Attempt ${retryCount} failed:`, error);
+
+            if (retryCount >= maxRetries) {
+                throw error; // Re-throw after last attempt
+            }
+
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+    }
+}
+
+// Dashboard data loading with better error handling
 async function loadDashboardData() {
     try {
+        console.log('Loading dashboard data...');
+        const token = localStorage.getItem('authToken');
+        if (!token) throw new Error('No authentication token');
+
         const response = await fetch('/api/doctor/dashboard', {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             credentials: 'include'
         });
 
+        console.log('Dashboard response status:', response.status);
+
         if (response.status === 401) {
-            throw new Error('Session expired');
+            throw new Error('Session expired - please login again');
         }
 
         if (!response.ok) {
-            throw new Error(`Dashboard request failed: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Dashboard request failed: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Dashboard data received:', data);
+
         renderDashboard(data);
+        return data;
     } catch (error) {
         console.error('Dashboard load error:', error);
         showToast(error.message, 'error');
-        throw error; // Re-throw for initializeApp to handle
+        throw error; // Re-throw for retry logic
     }
 }
 
-// Dashboard rendering
+// Enhanced renderDashboard function
 function renderDashboard(data) {
-    loadAppointments(data.todayAppointments || [], data.upcomingAppointments || []);
-    loadPatients(data.recentPatients || []);
-    loadPendingRequests(data.pendingRequests || []);
+    try {
+        console.log('Rendering dashboard with data:', data);
+
+        // Load all components with error handling
+        try {
+            loadAppointments(data.todayAppointments || [], data.upcomingAppointments || []);
+        } catch (e) {
+            console.error('Error loading appointments:', e);
+            showToast('Failed to load appointments', 'error');
+        }
+
+        try {
+            loadPatients(data.recentPatients || []);
+        } catch (e) {
+            console.error('Error loading patients:', e);
+            showToast('Failed to load patients', 'error');
+        }
+
+        try {
+            loadPendingRequests(data.pendingRequests || []);
+        } catch (e) {
+            console.error('Error loading pending requests:', e);
+            showToast('Failed to load pending requests', 'error');
+        }
+
+        try {
+            loadQuickStats();
+        } catch (e) {
+            console.error('Error loading quick stats:', e);
+            showToast('Failed to load statistics', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error rendering dashboard:', error);
+        showToast('Failed to render dashboard', 'error');
+    }
 }
 
-// Add these helper functions if you don't have them:
-function formatTime(timeStr) {
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-}
+// Improved toast notification
+function showToast(message, type = 'error') {
+    // Remove any existing toasts
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => toast.remove());
 
-function formatDate(dateStr) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateStr).toLocaleDateString(undefined, options);
+    const toast = document.createElement('div');
+    toast.className = `custom-toast alert alert-${type === 'error' ? 'danger' : 'success'} position-fixed`;
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '1100';
+    toast.style.minWidth = '300px';
+    toast.innerHTML = `
+        <div class="d-flex justify-content-between">
+            <strong>${type === 'error' ? 'Error' : 'Success'}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div>${message}</div>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
 }
 
 // Process FHIR Bundle response
@@ -159,49 +253,165 @@ function parsePatient(fhirPatient) {
 
 // Load appointments
 function loadAppointments(todayAppts, upcomingAppts) {
-    const todaysAppointments = document.getElementById('todaysAppointments');
-    const upcomingAppointments = document.getElementById('upcomingAppointments');
+    try {
+        console.log('Loading appointments...', { todayAppts, upcomingAppts });
 
-    todaysAppointments.innerHTML = todayAppts.length ? '' :
-        '<tr><td colspan="5" class="text-center">No appointments today</td></tr>';
+        const todaysContainer = document.getElementById('todaysAppointments');
+        const upcomingContainer = document.getElementById('upcomingAppointments');
 
-    upcomingAppointments.innerHTML = upcomingAppts.length ? '' :
-        '<tr><td colspan="5" class="text-center">No upcoming appointments</td></tr>';
+        if (!todaysContainer || !upcomingContainer) {
+            throw new Error('Could not find appointment containers in DOM');
+        }
 
-    todayAppts.forEach(appt => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-                <td>${appt.time}</td>
-                <td>${appt.patient}</td>
-                <td>${appt.reason}</td>
-                <td><span class="badge ${getStatusBadgeClass(appt.status)}">${appt.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-success start-btn" data-appointment-id="${appt.id}">
-                        Start
-                    </button>
-                </td>
+        // Clear existing content
+        todaysContainer.innerHTML = '';
+        upcomingContainer.innerHTML = '';
+
+        // Handle empty states
+        if (!todayAppts || todayAppts.length === 0) {
+            todaysContainer.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <h5>No appointments today</h5>
+                        </div>
+                    </td>
+                </tr>
             `;
-        todaysAppointments.appendChild(row);
-    });
+        } else {
+            todayAppts.forEach(appt => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatTime(appt.time)}</td>
+                    <td>${appt.patient}</td>
+                    <td>${appt.reason || 'Consultation'}</td>
+                    <td><span class="badge ${getStatusBadgeClass(appt.status)}">${appt.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-success start-btn" data-appointment-id="${appt.id}">
+                            <i class="bi bi-play-fill"></i> Start
+                        </button>
+                    </td>
+                `;
+                todaysContainer.appendChild(row);
+            });
+        }
 
-    upcomingAppts.forEach(appt => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-                <td>${appt.date} at ${appt.time}</td>
-                <td>${appt.patient}</td>
-                <td>${appt.age}</td>
-                <td>${appt.reason}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary details-btn" data-appointment-id="${appt.id}">
-                        Details
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger cancel-btn" data-appointment-id="${appt.id}">
-                        Cancel
-                    </button>
-                </td>
+        if (!upcomingAppts || upcomingAppts.length === 0) {
+            upcomingContainer.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <h5>No upcoming appointments</h5>
+                        </div>
+                    </td>
+                </tr>
             `;
-        upcomingAppointments.appendChild(row);
+        } else {
+            upcomingAppts.forEach(appt => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${formatDate(appt.date)}</div>
+                        <div class="text-muted small">${formatTime(appt.time)}</div>
+                    </td>
+                    <td>${appt.patient}</td>
+                    <td>${appt.reason || 'Consultation'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success start-btn me-1" data-appointment-id="${appt.id}">
+                            <i class="bi bi-play-fill"></i> Start
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger cancel-btn" data-appointment-id="${appt.id}">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    </td>
+                `;
+                upcomingContainer.appendChild(row);
+            });
+        }
+
+        // Add event listeners
+        document.querySelectorAll('.start-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const appointmentId = this.getAttribute('data-appointment-id');
+                window.location.href = `/consultation?appointmentId=${appointmentId}`;
+            });
+        });
+
+        document.querySelectorAll('.cancel-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const appointmentId = this.getAttribute('data-appointment-id');
+                if (confirm('Are you sure you want to cancel this appointment?')) {
+                    updateAppointmentStatus(appointmentId, 'cancelled');
+                }
+            });
+        });
+
+        console.log('Appointments loaded successfully');
+    } catch (error) {
+        console.error('Error in loadAppointments:', error);
+        showToast('Failed to load appointments. Please try again.', 'error');
+        throw error;
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
     });
+}
+
+function formatTime(timeStr) {
+    if (!timeStr) return 'N/A';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+}
+
+// Add these new functions to doctor.js:
+
+async function loadQuickStats() {
+    try {
+        const response = await fetch('/api/doctor/quick-stats', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to load quick stats');
+
+        const data = await response.json();
+
+        // Update the UI with quick stats
+        document.getElementById('doctorName').textContent = data.doctorName || 'Doctor';
+        document.getElementById('todaysAppointmentsCount').textContent = data.todaysAppointments || '0';
+        document.getElementById('pendingRequestsCount').textContent = data.pendingRequests || '0';
+        document.getElementById('totalPatientsCount').textContent = data.totalPatients || '0';
+        document.getElementById('activePrescriptionsCount').textContent = data.activePrescriptions || '0';
+        document.getElementById('avgConsultationTime').textContent = data.avgConsultationTime || 'N/A';
+    } catch (error) {
+        console.error('Error loading quick stats:', error);
+    }
+}
+
+// Update the appointment status badge to match patient dashboard style
+function getStatusBadgeClass(status) {
+    switch (status.toLowerCase()) {
+        case 'confirmed': return 'status-confirmed';
+        case 'pending': return 'status-pending';
+        case 'cancelled': return 'status-cancelled';
+        case 'completed': return 'status-confirmed';
+        default: return 'bg-secondary';
+    }
 }
 
 function loadPendingRequests(requests) {
@@ -408,10 +618,15 @@ function getParticipantName(participants, resourceType) {
     return participant?.actor.display || '';
 }
 
-function showToast(message, type = 'success') {
-    // Implement toast notification
-    alert(`${type.toUpperCase()}: ${message}`);
-}
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, initializing app...');
+    initializeApp().catch(error => {
+        console.error('Unhandled error during initialization:', error);
+        showToast('Failed to initialize application', 'error');
+    });
+});
+
+
 

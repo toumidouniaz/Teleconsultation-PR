@@ -7,24 +7,33 @@
     <title>Tele-Med - Patient Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Open+Sans:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
-            --primary-color: #394C5C;
-            --secondary-color: #D8E7EE;
-            --accent-color: #97D4F1;
-            --light-bg: #f8f9fa;
-            --text-color: #041A38;
-            --sidebar-text: #394C5C;
+            --primary-color: #2c3e50;
+            --primary-light: #3d566e;
+            --secondary-color: #e0f2f1;
+            --accent-color: #00bcd4;
+            --accent-dark: #008ba3;
+            --light-bg: #f8fafc;
+            --text-color: #2d3748;
+            --sidebar-text: #2c3e50;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         body {
             background-color: var(--light-bg);
             color: var(--text-color);
             font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
         }
 
         h1,
@@ -34,27 +43,42 @@
         h5,
         h6 {
             font-family: 'Poppins', sans-serif;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .sidebar {
-            background-color: var(--secondary-color);
+            background-color: white;
             color: var(--sidebar-text);
             min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 10;
         }
 
         .nav-link {
             color: var(--sidebar-text);
             font-weight: 500;
+            border-radius: 8px;
+            margin: 4px 0;
+            padding: 10px 15px;
+            transition: var(--transition);
         }
 
         .nav-link.active {
-            background-color: rgba(13, 110, 253, 0.1);
-            border-left: 3px solid var(--primary-color);
+            background-color: rgba(0, 188, 212, 0.1);
+            color: var(--accent-dark);
+            border-left: 4px solid var(--accent-color);
         }
 
         .nav-link:hover {
-            background-color: rgba(13, 110, 253, 0.1);
+            background-color: rgba(0, 188, 212, 0.05);
+            transform: translateX(2px);
+        }
+
+        .nav-link i {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
         }
 
         .btn-outline-primary {
@@ -68,138 +92,220 @@
         }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            transform: translateY(-1px);
         }
 
         .card-header {
             background-color: var(--primary-color) !important;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
         }
 
         .card-header h5 {
             font-weight: 600;
             color: white;
+            letter-spacing: 0.5px;
         }
 
         .card {
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            margin-bottom: 24px;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
         .table-hover tbody tr:hover {
-            background-color: rgba(231, 241, 255, 0.3);
+            background-color: rgba(224, 242, 241, 0.4);
         }
 
         .table th {
             background-color: var(--secondary-color);
             color: var(--primary-color);
             font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-confirmed {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-pending {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-cancelled {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--danger-color);
         }
 
         .doctor-card {
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .doctor-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(13, 110, 253, 0.15);
+            box-shadow: 0 10px 25px rgba(0, 188, 212, 0.15);
+        }
+
+        .doctor-card .card-img-top {
+            height: 160px;
+            object-fit: cover;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .doctor-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .doctor-card .btn {
+            width: 100%;
+            margin-top: 10px;
         }
 
         .modal-header {
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+        }
+
+        .modal-content {
+            border-radius: var(--border-radius) !important;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
 
         .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-
-        /* Special styling for available doctors cards */
-        .doctor-card .card-body {
-            padding: 1.25rem;
-        }
-
-        .doctor-card .specialty-badge {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .alert-prescriptions {
-            color: var(--accent-color);
-            font-weight: 500;
-        }
-
-        #doctorSearch {
-            border-color: var(--primary-color);
-        }
-
-        #doctorSearch:focus {
-            box-shadow: 0 0 0 0.25rem rgba(57, 76, 92, 0.25);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(0, 188, 212, 0.25);
         }
 
         .specialty-badge {
-            background-color: var(--primary-color);
+            background-color: var(--accent-color);
             color: white;
             font-weight: 500;
-            padding: 0.35em 0.65em;
-            font-size: 0.85em;
+            padding: 0.4em 0.8em;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 2px;
         }
 
         .prescription-card {
-            transition: all 0.2s ease;
+            transition: var(--transition);
+            border-left: 4px solid var(--accent-color);
+            margin-bottom: 15px;
         }
 
         .prescription-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            background-color: rgba(151, 212, 241, 0.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            background-color: rgba(0, 188, 212, 0.05);
         }
 
-        #prescriptionModalBody h6 {
-            color: #394C5C;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+        .search-box {
+            position: relative;
         }
 
-        #prescriptionModalBody p {
-            margin-bottom: 1rem;
+        .search-box .form-control {
+            padding-left: 40px;
+            border-radius: 30px;
+            height: 50px;
         }
 
-        /* Chat Styles */
-        .chat-messages {
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 10px;
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            color: var(--primary-color);
         }
 
-        .unread-chat {
-            background-color: rgba(151, 212, 241, 0.2);
-            border-left: 3px solid var(--primary-color);
+        .appointment-actions .btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            margin: 2px;
         }
 
-        #chatModal .modal-body {
-            min-height: 400px;
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+        }
+
+        .empty-state h5 {
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            max-width: 400px;
+            margin: 0 auto 20px;
         }
 
         /* Floating chat button */
         #openChatBtn {
             z-index: 1000;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 15px rgba(0, 188, 212, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            transition: var(--transition);
+            border: none;
         }
 
         #openChatBtn:hover {
-            transform: scale(1.1);
-            transition: transform 0.2s;
+            transform: scale(1.1) translateY(-3px);
+            background-color: var(--accent-dark);
+            box-shadow: 0 8px 20px rgba(0, 188, 212, 0.4);
         }
 
-        .chat-btn.disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
+        #unreadBadge {
+            font-size: 0.7rem;
+            padding: 5px 7px;
         }
 
         /* Animation for loading state */
@@ -209,8 +315,101 @@
             }
         }
 
-        .bi-hourglass {
+        .loading-spinner {
             animation: spin 1s linear infinite;
+            color: var(--accent-color);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                width: 100%;
+                position: relative;
+            }
+
+            .doctor-card {
+                margin-bottom: 15px;
+            }
+
+            .search-box .form-control {
+                height: 45px;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dark);
+        }
+
+        /* Gradient background for header */
+        .main-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 15px 0;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Improved prescription modal */
+        .prescription-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: var(--transition);
+        }
+
+        .prescription-item:hover {
+            background-color: rgba(0, 188, 212, 0.05);
+        }
+
+        .prescription-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Test consultation card */
+        .test-consultation-card {
+            background-color: rgba(0, 188, 212, 0.05);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        /* Doctor availability indicator */
+        .availability-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .available {
+            background-color: var(--success-color);
+        }
+
+        .unavailable {
+            background-color: var(--danger-color);
+        }
+
+        #allergiesText {
+            transition: var(--transition);
+        }
+
+        #allergiesText:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -221,105 +420,245 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-0">
                 <div class="p-4">
-                    <h4 class="mb-4">Tele-Med</h4>
+                    <h4 class="mb-4 d-flex align-items-center">
+                        <i class="bi bi-heart-pulse me-2" style="color: var(--accent-color);"></i>
+                        <span>Tele-Med</span>
+                    </h4>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#">Dashboard</a>
+                            <a class="nav-link active" href="/patient/dashboard">
+                                <i class="bi bi-speedometer2"></i>Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Appointments</a>
+                            <a class="nav-link" href="/patient/appointments">
+                                <i class="bi bi-calendar-check"></i>Appointments</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Medical History</a>
+                            <a class="nav-link" href="/patient/prescriptions">
+                                <i class="bi bi-file-medical"></i>Prescriptions</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Prescriptions</a>
+                            <a class="nav-link" href="/consulation">
+                                <i class="bi bi-camera-video"></i>Video Consultation
+                            </a>
                         </li>
-                        <!-- In your patient_dashboard.html -->
-                        <button onclick="logout()" class="btn btn-danger">Logout</button>
+                        <li class="nav-item mt-3">
+                            <button onclick="logout()" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
-                <div
-                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Patient Dashboard</h1>
-                    <div class="btn-toolbar mb-2 mb-md-0">
-                        <div class="btn-group me-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary">Today</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary">Week</button>
+                <!-- Header with greeting -->
+                <div class="main-header py-3">
+                    <div class="d-flex justify-content-between align-items-center px-3">
+                        <div>
+                            <h1 class="h3 mb-2">Welcome back, <span id="patientName">Patient</span>!</h1>
+                            <p class="mb-0 opacity-75">Here's what's happening with your health today</p>
+                        </div>
+                        <div class="d-flex">
+                            <div class="me-4 text-end">
+                                <small class="d-block opacity-75">Next Appointment</small>
+                                <strong id="nextAppointmentDate">No upcoming</strong>
+                            </div>
+                            <div class="text-end">
+                                <small class="d-block opacity-75">Active Prescriptions</small>
+                                <strong id="activePrescriptionsCount"></strong>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="doctorSearch"
-                                        placeholder="Search doctors by name or specialty...">
-                                    <button class="btn btn-primary" id="searchDoctorsBtn">Search</button>
+
+
+                <div class="py-3 px-3">
+                    <!-- Search Doctors Card -->
+                    <div class="card mb-4">
+                        <div class="card-body p-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="search-box">
+                                        <i class="bi bi-search"></i>
+                                        <input type="text" class="form-control" id="doctorSearch"
+                                            placeholder="Search doctors by name, specialty, or location...">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                    <button class="btn btn-primary me-2" id="searchDoctorsBtn">
+                                        <i class="bi bi-search me-1"></i> Search
+                                    </button>
+                                    <button class="btn btn-outline-secondary" id="resetSearchBtn">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="col-md-4 text-end">
-                                <button class="btn btn-outline-secondary" id="resetSearchBtn">Reset</button>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Upcoming Appointments -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Upcoming Appointments</h5>
+                <div class="row mb-4">
+                    <!-- Upcoming Appointments -->
+                    <div class="col-lg-8 pe-lg-3">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Upcoming Appointments</h5>
+                                <a href="/patient/appointments" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Date & Time</th>
+                                                <th>Doctor</th>
+                                                <th>Speciality</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="appointmentsTable">
+                                            <!-- Appointments will be loaded here via JavaScript -->
+                                            <tr>
+                                                <td colspan="5">
+                                                    <div class="empty-state py-4">
+                                                        <i class="bi bi-calendar-x"></i>
+                                                        <h5>No upcoming appointments</h5>
+                                                        <p>You don't have any scheduled appointments right now.</p>
+                                                        <button class="btn btn-primary" id="bookAppointmentBtn">
+                                                            <i class="bi bi-plus-circle"></i> Book Appointment
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>Doctor</th>
-                                        <th>Speciality</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="appointmentsTable">
-                                    <!-- Appointments will be loaded here via JavaScript -->
-                                    <tr>
-                                        <td colspan="5" class="text-center">No upcoming appointments</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                    <!-- Quick Stats -->
+                    <div class="col-lg-4 ps-lg-3 mt-4 mt-lg-0">
+                        <div class="card h-100">
+                            <div class="card-header py-3">
+                                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Health Summary</h5>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded me-3">
+                                        <i class="bi bi-heart-pulse text-primary" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Last Checkup</h6>
+                                        <small class="text-muted" id="lastCheckupDate"></small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded me-3">
+                                        <i class="bi bi-file-medical text-success" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Active Prescriptions</h6>
+                                        <small class="text-muted" id="activePrescriptionsText"></small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded me-3">
+                                        <i class="bi bi-exclamation-triangle text-warning"
+                                            style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Allergies</h6>
+                                        <small class="text-muted" id="allergiesText"></small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Available Doctors -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Available Doctors</h5>
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center py-3">
+                        <h5 class="mb-0"><i class="bi bi-people me-2"></i>Available Doctors</h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
+                                id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-funnel"></i> Filter
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                                <li><a class="dropdown-item" href="#" data-filter="all">All Specialties</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="#" data-filter="cardiology">Cardiology</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="neurology">Neurology</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="pediatrics">Pediatrics</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="orthopedics">Orthopedics</a></li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row" id="doctorsList">
                             <!-- Doctors will be loaded here via JavaScript -->
-                            <div class="col-12 text-center">Loading doctors...</div>
+                            <div class="col-12">
+                                <div class="empty-state py-4">
+                                    <i class="bi bi-person-plus loading-spinner" style="font-size: 2rem;"></i>
+                                    <h5>Loading available doctors</h5>
+                                    <p>We're fetching the list of doctors for you.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card mb-4 mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">My Prescriptions</h5>
+                <!-- My Prescriptions -->
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-prescription me-2"></i>My Prescriptions</h5>
+                        <a href="/patient/prescriptions" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body">
                         <div id="prescriptionsContainer">
+                            <div class="empty-state py-4">
+                                <i class="bi bi-file-medical"></i>
+                                <h5>No active prescriptions</h5>
+                                <p>You don't have any active prescriptions at the moment.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="alert alert-prescriptions">No active prescriptions</div>
+                <!-- Test Consultation Card -->
+                <div class="card mt-4 test-consultation-card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-camera-video me-2"></i>Video Consultation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar-check"></i></span>
+                                    <input type="number" id="testAppointmentId" class="form-control"
+                                        placeholder="Enter Appointment ID">
+                                    <button class="btn btn-primary" id="startTestConsultation">
+                                        <i class="bi bi-camera-video me-1"></i> Join Consultation
+                                    </button>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="bi bi-info-circle"></i> Enter the appointment ID provided by your doctor
+                                    to join the video consultation.
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <button class="btn btn-outline-primary" id="testConnectionBtn">
+                                    <i class="bi bi-wifi"></i> Test Connection
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -329,10 +668,10 @@
 
     <!-- Appointment Modal -->
     <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Book Appointment</h5>
+                    <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Book Appointment</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -340,14 +679,20 @@
                         <input type="hidden" id="doctorId">
                         <div class="mb-3">
                             <label for="appointmentDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="appointmentDate" required>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                <input type="date" class="form-control" id="appointmentDate" required>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="appointmentTime" class="form-label">Time</label>
-                            <input type="time" class="form-control" id="appointmentTime" required>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                                <input type="time" class="form-control" id="appointmentTime" required>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="appointmentDuration" class="form-label">Duration (minutes)</label>
+                            <label for="appointmentDuration" class="form-label">Duration</label>
                             <select class="form-select" id="appointmentDuration">
                                 <option value="30">30 minutes</option>
                                 <option value="60">60 minutes</option>
@@ -355,14 +700,19 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="appointmentReason" class="form-label">Reason</label>
-                            <textarea class="form-control" id="appointmentReason" rows="3"></textarea>
+                            <label for="appointmentReason" class="form-label">Reason for Visit</label>
+                            <textarea class="form-control" id="appointmentReason" rows="3"
+                                placeholder="Briefly describe the reason for your appointment"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmAppointment">Confirm</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmAppointment">
+                        <i class="bi bi-check-circle me-1"></i> Confirm Appointment
+                    </button>
                 </div>
             </div>
         </div>
@@ -370,33 +720,103 @@
 
     <!-- Prescription View Modal -->
     <div class="modal fade" id="prescriptionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="prescriptionModalTitle">Prescription Details</h5>
+                    <h5 class="modal-title" id="prescriptionModalTitle">
+                        <i class="bi bi-file-medical me-2"></i>Prescription Details
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="prescriptionModalBody">
-                    <!-- Content will be loaded here -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-person me-2"></i>Patient Information</h6>
+                            <p id="patientInfo">Loading...</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-prescription me-2"></i>Prescription Details</h6>
+                            <p id="prescriptionDetails">Loading...</p>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Medication</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Instructions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prescriptionMedications">
+                                <!-- Medications will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        <h6><i class="bi bi-journal-text me-2"></i>Additional Notes</h6>
+                        <p id="prescriptionNotes" class="text-muted">No additional notes provided.</p>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="downloadPrescriptionPdf">Download PDF</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Close
+                    </button>
+                    <button type="button" class="btn btn-primary" id="downloadPrescriptionPdf">
+                        <i class="bi bi-download me-1"></i> Download PDF
+                    </button>
+                    <button type="button" class="btn btn-success" id="sendToPharmacyBtn">
+                        <i class="bi bi-shop me-1"></i> Send to Pharmacy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Allergies Modal -->
+    <div class="modal fade" id="editAllergiesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-clipboard2-pulse me-2"></i>Update Allergies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editAllergiesInput" class="form-label">Allergies</label>
+                        <textarea class="form-control" id="editAllergiesInput" rows="3"
+                            placeholder="List your allergies separated by commas (e.g., Penicillin, Peanuts)"></textarea>
+                        <div class="form-text">Leave blank if you have no known allergies</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveAllergiesBtn">
+                        <i class="bi bi-check-circle me-1"></i> Save Changes
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Floating Chat Button -->
-    <a class="btn btn-success position-fixed rounded-circle chat-btn"
-        style="bottom: 20px; right: 20px; width: 60px; height: 60px;" id="openChatBtn" href="/patient/chat"
-        title="Open Chat">
+    <button class="btn btn-primary position-fixed rounded-circle chat-btn" style="bottom: 30px; right: 30px;"
+        id="openChatBtn" title="Open Chat">
         <i class="bi bi-chat-dots" style="font-size: 1.5rem;"></i>
-    </a>
-
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="unreadBadge"
+            style="display: none;">
+            0
+        </span>
+    </button>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/auth.js"></script>
+    <script src="../js/auth.js"></script>
     <script src="../js/patient.js"></script>
 </body>
 

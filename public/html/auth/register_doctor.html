@@ -55,6 +55,27 @@
             color: #2d3b48;
             text-decoration: underline;
         }
+
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+
+        .select2-container--default .select2-results__option--highlighted {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .select2-container--default .select2-results__option--selected {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+        }
     </style>
 </head>
 
@@ -82,7 +103,32 @@
 
                 <div class="mb-3">
                     <label for="speciality" class="form-label">Speciality:</label>
-                    <input type="text" class="form-control" id="speciality" name="speciality" required>
+                    <select class="form-select" id="speciality" name="speciality" required>
+                        <option value="" selected disabled>Select a speciality</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="Endocrinology">Endocrinology</option>
+                        <option value="Family Medicine">Family Medicine</option>
+                        <option value="Gastroenterology">Gastroenterology</option>
+                        <option value="General Practice">General Practice</option>
+                        <option value="Internal Medicine">Internal Medicine</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                        <option value="Oncology">Oncology</option>
+                        <option value="Ophthalmology">Ophthalmology</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Psychiatry">Psychiatry</option>
+                        <option value="Pulmonology">Pulmonology</option>
+                        <option value="Radiology">Radiology</option>
+                        <option value="Urology">Urology</option>
+                        <option value="other">Other (please specify)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="otherSpecialityContainer" style="display: none;">
+                    <label for="otherSpeciality" class="form-label">Please specify your speciality:</label>
+                    <input type="text" class="form-control" id="otherSpeciality" name="otherSpeciality">
                 </div>
 
                 <div class="mb-3">
@@ -93,6 +139,22 @@
                 <div class="mb-3">
                     <label for="address" class="form-label">Address:</label>
                     <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="license_number" class="form-label">License Number:</label>
+                    <input type="text" class="form-control" id="license_number" name="license_number" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="years_of_experience" class="form-label">Years of Experience:</label>
+                    <input type="number" class="form-control" id="years_of_experience" name="years_of_experience"
+                        min="0" max="60">
+                </div>
+
+                <div class="mb-3">
+                    <label for="biography" class="form-label">Biography:</label>
+                    <textarea class="form-control" id="biography" name="biography" rows="3"></textarea>
                 </div>
 
                 <div class="mb-3">

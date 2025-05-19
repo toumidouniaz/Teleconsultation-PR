@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tele-Med - My Patients</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --primary-light: #3d566e;
+            --secondary-color: #e0f2f1;
+            --accent-color: #00bcd4;
+            --accent-dark: #008ba3;
+            --light-bg: #f8fafc;
+            --text-color: #2d3748;
+            --sidebar-text: #2c3e50;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+        }
+
+        .sidebar {
+            background-color: white;
+            color: var(--sidebar-text);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-link {
+            color: var(--sidebar-text);
+            font-weight: 500;
+            border-radius: 8px;
+            margin: 4px 0;
+            padding: 10px 15px;
+            transition: var(--transition);
+        }
+
+        .nav-link.active {
+            background-color: rgba(0, 188, 212, 0.1);
+            color: var(--accent-dark);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .nav-link:hover {
+            background-color: rgba(0, 188, 212, 0.05);
+            transform: translateX(2px);
+        }
+
+        .nav-link i {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #3d8b40;
+            border-color: #3d8b40;
+        }
+
+        .btn-outline-danger {
+            color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn-outline-danger:hover {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .card-header {
+            background-color: var(--primary-color) !important;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+            color: white;
+        }
+
+        .card-header h5 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            margin-bottom: 24px;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .patient-card {
+            transition: var(--transition);
+            border-radius: var(--border-radius);
+            height: 100%;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .patient-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 188, 212, 0.15);
+        }
+
+        .patient-name {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .search-container {
+            max-width: 400px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+        }
+
+        .empty-state h5 {
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+
+        .main-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 15px 0;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .badge-specialty {
+            background-color: rgba(0, 188, 212, 0.1);
+            color: var(--accent-color);
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+
+        #patientsContainer {
+            gap: 1.5rem;
+        }
+
+        .action-buttons .btn {
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .list-group-item {
+            transition: var(--transition);
+        }
+
+        .list-group-item:hover {
+            background-color: rgba(224, 242, 241, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                width: 100%;
+                position: relative;
+            }
+
+            .search-container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4">
+                    <h4 class="mb-4 d-flex align-items-center">
+                        <i class="bi bi-heart-pulse me-2" style="color: var(--accent-color);"></i>
+                        <span>Tele-Med</span>
+                    </h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/doctor/dashboard">
+                                <i class="bi bi-speedometer2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/doctor/appointments">
+                                <i class="bi bi-calendar-check"></i>Appointments
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/doctor/patients">
+                                <i class="bi bi-people"></i>Patients
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/doctor/prescriptions">
+                                <i class="bi bi-file-medical"></i>Prescriptions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/test-consultation">
+                                <i class="bi bi-camera-video"></i>Consultation
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <button onclick="logout()" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                <!-- Header -->
+                <div class="main-header py-3">
+                    <div class="d-flex justify-content-between align-items-center px-3">
+                        <div>
+                            <h1 class="h3 mb-2">My Patients</h1>
+                            <p class="mb-0 opacity-75">Manage your patient list and view medical records</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div class="search-container input-group">
+                                <input type="text" class="form-control" id="patientSearch"
+                                    placeholder="Search patients...">
+                                <button class="btn btn-outline-primary" type="button" id="searchPatientsBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="resetSearchBtn">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-success" id="assignPatientsBtn">
+                                <i class="bi bi-person-plus me-1"></i> Assign Patients
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patients List -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Patient List</h5>
+                        <div class="badge bg-primary rounded-pill" id="patientCount">0</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading patients...</p>
+                        </div>
+                        <div id="patientsContainer" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                            <div class="col-12">
+                                <div class="empty-state py-4">
+                                    <i class="bi bi-person-plus"></i>
+                                    <h5>No patients found</h5>
+                                    <p>Your assigned patients will appear here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Details Modal -->
+    <div class="modal fade" id="patientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Patient Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="patientModalBody">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3 mb-md-0">
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                                style="width: 120px; height: 120px;">
+                                <i class="bi bi-person" style="font-size: 3rem; color: var(--accent-color);"></i>
+                            </div>
+                            <h4 class="mt-3 patient-name" id="modalPatientName">Loading...</h4>
+                            <div class="badge-specialty mb-2" id="modalPatientGender">Loading...</div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-muted">Personal Information</h6>
+                                    <p><strong>Age:</strong> <span id="modalPatientAge">Loading...</span></p>
+                                    <p><strong>Phone:</strong> <span id="modalPatientPhone">Loading...</span></p>
+                                    <p><strong>Email:</strong> <span id="modalPatientEmail">Loading...</span></p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-muted">Medical Information</h6>
+                                    <p><strong>Blood Type:</strong> <span id="modalPatientBloodType">Loading...</span>
+                                    </p>
+                                    <p><strong>Allergies:</strong> <span id="modalPatientAllergies">None reported</span>
+                                    </p>
+                                    <p><strong>Last Visit:</strong> <span id="modalPatientLastVisit">Loading...</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="text-muted">Notes</h6>
+                                <div class="p-3 bg-light rounded" id="modalPatientNotes">
+                                    No additional notes available for this patient.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer action-buttons">
+                    <button type="button" class="btn btn-success" id="startChatBtn">
+                        <i class="bi bi-chat-left-text me-1"></i> Start Chat
+                    </button>
+                    <button type="button" class="btn btn-primary" id="bookAppointmentBtn">
+                        <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div class="modal fade" id="assignmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Assign Patients to Your Care</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info d-flex align-items-center">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <div>Select patients to assign them to your care</div>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="unassignedPatientSearch"
+                            placeholder="Search unassigned patients...">
+                    </div>
+                    <div id="unassignedPatientsList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                        <div class="list-group-item text-center py-4">
+                            <i class="bi bi-people" style="font-size: 2rem; color: #cbd5e1;"></i>
+                            <h5 class="mt-2">No unassigned patients found</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmAssignmentBtn">
+                        <i class="bi bi-save me-1"></i> Assign Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/doctorPatients.js"></script>
+    <script>
+        function logout() {
+            window.location.href = '/logout';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,15 +1,27 @@
-const pool = require('../db');
+const pool = require('../../db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
+const fhirUtils = require('../utils/fhirUtils');
 
 // Register a new doctor
 exports.registerDoctor = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, confirmPassword, speciality, phone, address } = req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            password,
+            confirmPassword,
+            speciality,
+            phone,
+            address,
+            license_number,
+            years_of_experience,
+            biography
+        } = req.body;
 
         // Validation
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !speciality) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !speciality || !license_number) {
             return res.status(400).json({ error: "All fields are required" });
         }
 
@@ -27,6 +39,9 @@ exports.registerDoctor = async (req, res) => {
             return res.status(400).json({ error: "Email already in use" });
         }
 
+        // Generate FHIR ID
+        const fhir_id = fhirUtils.generateFhirId();
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -41,15 +56,18 @@ exports.registerDoctor = async (req, res) => {
                 [firstName, lastName, email, hashedPassword, phone, address]
             );
 
-            // Insert doctor
+            // Insert doctor with all fields
             await conn.query(
-                `INSERT INTO doctors (user_id, speciality) 
-                 VALUES (?, ?)`,
-                [userResult.insertId, speciality]
+                `INSERT INTO doctors (user_id, speciality, license_number, years_of_experience, biography, fhir_id, createdAt, updatedAt) 
+                 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                [userResult.insertId, speciality, license_number, years_of_experience || null, biography || null, fhir_id]
             );
 
             await conn.commit();
-            res.status(201).json({ message: "Doctor registered successfully" });
+            res.status(201).json({
+                message: "Doctor registered successfully",
+                fhir_id: fhir_id
+            });
         } catch (err) {
             await conn.rollback();
             console.error("Database error:", err);
@@ -66,10 +84,25 @@ exports.registerDoctor = async (req, res) => {
 // Register a new patient
 exports.registerPatient = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, confirmPassword, age, phone, address } = req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            password,
+            confirmPassword,
+            age,
+            phone,
+            address,
+            blood_type,
+            height_cm,
+            weight_kg,
+            allergies,
+            birthdate,
+            doctorUserId
+        } = req.body;
 
         // Validation
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !age) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !age || !blood_type || !birthdate) {
             return res.status(400).json({ error: "All fields are required" });
         }
 
@@ -87,6 +120,9 @@ exports.registerPatient = async (req, res) => {
             return res.status(400).json({ error: "Email already in use" });
         }
 
+        // Generate FHIR ID
+        const fhir_id = fhirUtils.generateFhirId();
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -101,15 +137,18 @@ exports.registerPatient = async (req, res) => {
                 [firstName, lastName, email, hashedPassword, phone, address]
             );
 
-            // Insert patient
+            // Insert patient with all fields including doctorUserId
             await conn.query(
-                `INSERT INTO patients (user_id, age) 
-                 VALUES (?, ?)`,
-                [userResult.insertId, age]
+                `INSERT INTO patients (user_id, age, blood_type, height_cm, weight_kg, allergies, birthdate, DoctorUserId, fhir_id, createdAt, updatedAt) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                [userResult.insertId, age, blood_type, height_cm || null, weight_kg || null, allergies || null, birthdate, doctorUserId || null, fhir_id]
             );
 
             await conn.commit();
-            res.status(201).json({ message: "Patient registered successfully" });
+            res.status(201).json({
+                message: "Patient registered successfully",
+                fhir_id: fhir_id
+            });
         } catch (err) {
             await conn.rollback();
             console.error("Database error:", err);
@@ -167,6 +206,14 @@ exports.login = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
         );
+
+        // Set token in cookie as well
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 8 * 60 * 60 * 1000 // 8 hours
+        });
 
         // Prepare response
         const responseData = {

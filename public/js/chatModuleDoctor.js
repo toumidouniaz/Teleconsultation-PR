@@ -1,5 +1,7 @@
+
 export class ChatModuleDoctor {
     constructor(socket, currentUser) {
+        // Store the socket passed from chat.html
         this.socket = socket;
         this.currentUser = currentUser;
         this.currentChatContact = null;
@@ -34,23 +36,32 @@ export class ChatModuleDoctor {
     }
 
     initializeSocket() {
-        // Socket event listeners
-        this.socket.on('private-message', this.handleIncomingMessage);
-        this.socket.on('typing', this.handleTypingIndicator);
-        this.socket.on('unread-messages', this.loadUnreadMessages);
+        // Use the socket passed from chat.html instead of creating a new one
+        // this.socket is already set in the constructor
 
         // Handle connection events
         this.socket.on('connect', () => {
-            console.log('Chat connected');
-        });
-
-        this.socket.on('disconnect', () => {
-            console.log('Chat disconnected');
+            console.log('Socket connected:', this.socket.id);
+            // Join user's personal room
+            this.socket.emit('joinUserRoom', { userId: this.currentUser.id });
         });
 
         this.socket.on('connect_error', (err) => {
-            console.error('Chat connection error:', err);
-            this.showToast('Chat connection lost', 'error');
+            console.error('Connection error:', err);
+            if (err.message === 'Authentication failed') {
+                // Handle token expiration
+                localStorage.removeItem('authToken');
+                window.location.href = '/login';
+            }
+        });
+
+        this.socket.on('chatMessage', (message) => {
+            console.log('Received message:', message);
+            this.handleIncomingMessage(message);
+        });
+
+        this.socket.on('disconnect', (reason) => {
+            console.log('Disconnected:', reason);
         });
 
         //this.socket.on('message-sent', (message) => {
@@ -60,6 +71,11 @@ export class ChatModuleDoctor {
         this.socket.on('message-error', (error) => {
             this.showToast(`Failed to send: ${error.message}`, 'error');
         });
+
+        // Socket event listeners
+        this.socket.on('private-message', this.handleIncomingMessage);
+        this.socket.on('typing', this.handleTypingIndicator);
+        this.socket.on('unread-messages', this.loadUnreadMessages);
     }
 
     initializeEventListeners() {
@@ -121,6 +137,8 @@ export class ChatModuleDoctor {
                 return;
             }
 
+            console.log('Loading chat contacts for user:', this.currentUser);
+
             const response = await fetch('/api/chat/contacts', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -128,8 +146,13 @@ export class ChatModuleDoctor {
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to load contacts');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to load contacts');
+            }
+
             const contacts = await response.json();
+            console.log('Loaded contacts:', contacts);
             this.renderChatContacts(contacts);
         } catch (error) {
             console.error('Error loading chat contacts:', error);
@@ -207,32 +230,34 @@ export class ChatModuleDoctor {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // In both modules, update the sendMessage function:
     sendMessage() {
         const input = document.getElementById('chatMessageInput');
         const message = input?.value.trim();
 
         if (message && this.currentChatContact) {
-            this.socket.emit('private-message', {
-                recipientId: this.currentChatContact.id,
-                recipientType: this.currentUser.userType === 'doctor' ? 'patient' : 'doctor',
-                message: message,
-                sender_name: `${this.currentUser.first_name} ${this.currentUser.last_name}`
-            });
+            const messageData = {
+                senderId: this.currentUser.id,
+                senderType: this.currentUser.userType,
+                receiverId: this.currentChatContact.id,
+                receiverType: this.currentUser.userType === 'doctor' ? 'patient' : 'doctor',
+                message: message
+            };
 
-            // Add message to UI immediately
-            const chatContainer = document.getElementById('chatMessages');
-            if (chatContainer) {
-                const messageEl = document.createElement('div');
-                messageEl.className = 'mb-2 text-end';
-                messageEl.innerHTML = `
-          <div class="d-inline-block p-2 rounded bg-success text-white">
-            ${message}
-            <div class="small text-muted">Just now</div>
-          </div>
-        `;
-                chatContainer.appendChild(messageEl);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+            // Add appointmentId if this is a consultation chat
+            if (this.currentChatContact.appointmentId) {
+                messageData.appointmentId = this.currentChatContact.appointmentId;
             }
+
+            this.socket.emit('chatMessage', messageData);
+
+            // Optimistic UI update
+            this.addMessageToUI({
+                message,
+                sender_id: this.currentUser.id,
+                sender_type: this.currentUser.userType,
+                created_at: new Date().toISOString()
+            });
 
             if (input) input.value = '';
         }
@@ -302,9 +327,11 @@ export class ChatModuleDoctor {
     // Cleanup method
 
     destroy() {
-        this.socket.off('private-message');
+        this.socket.off('chatMessage');
         this.socket.off('typing');
-        this.socket.off('unread-messages');
+        this.socket.off('connect');
+        this.socket.off('connect_error');
+        this.socket.off('disconnect');
 
         // Remove UI event listeners
         const messageInput = document.getElementById('chatMessageInput');

@@ -40,10 +40,24 @@
             padding: 15px 20px;
         }
 
-        .chat-sidebar {
+        .sidebar {
             background-color: var(--secondary-color);
-            height: calc(100vh - 150px);
-            overflow-y: auto;
+            color: var(--primary-color);
+            min-height: 100vh;
+        }
+
+        .nav-link {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .nav-link.active {
+            background-color: rgba(57, 76, 92, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .nav-link:hover {
+            background-color: rgba(57, 76, 92, 0.1);
         }
 
         .chat-messages {
@@ -81,20 +95,26 @@
                     <h4 class="mb-4">Tele-Med</h4>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.html">Dashboard</a>
+                            <a class="nav-link" href="/doctor/dashboard">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="appointments.html">Appointments</a>
+                            <a class="nav-link" href="/doctor/appointments">
+                                <i class="bi bi-calendar-check me-2"></i>Appointments
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="medical-history.html">Medical History</a>
+                            <a class="nav-link" href="/doctor/patients">
+                                <i class="bi bi-people-fill me-2"></i>Patients
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="prescriptions.html">Prescriptions</a>
+                            <a class="nav-link" href="/doctor/prescriptions">
+                                <i class="bi bi-prescription me-2"></i>Prescriptions
+                            </a>
                         </li>
-                        <li class="nav-item mt-4">
-                            <a class="nav-link" href="/logout">Logout</a>
-                        </li>
+                        <button onclick="logout()" class="btn btn-danger">Logout</button>
                     </ul>
                 </div>
             </div>
@@ -195,18 +215,33 @@
             }
 
             // Connect to Socket.IO with error handling
+            // Replace the socket initialization with this:
             const socket = io({
+                transports: ['websocket', 'polling'], // Try websocket first, then fallback to polling
                 auth: {
                     token: localStorage.getItem('authToken')
                 },
-                transports: ['websocket'] // Force WebSocket transport
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                randomizationFactor: 0.5
             });
 
+            // Add error handling
             socket.on('connect_error', (err) => {
-                console.error('Socket connection error:', err);
-                if (err.message === 'No token provided') {
+                console.error('Connection error:', err);
+                if (err.message === 'Authentication failed') {
                     window.location.href = '/login';
                 }
+            });
+
+            socket.on('reconnect_attempt', () => {
+                console.log('Attempting to reconnect...');
+            });
+
+            socket.on('reconnect_failed', () => {
+                console.error('Failed to reconnect');
             });
             // Authenticate with socket
             socket.emit('authenticate', {
@@ -214,22 +249,27 @@
                 userType: currentUser.userType
             });
 
-            // Load the correct chat module
-            try {
-                if (currentUser.userType === 'doctor') {
-                    const { ChatModuleDoctor } = await import('../js/chatModuleDoctor.js');
-                    window.chatModule = new ChatModuleDoctor(socket, currentUser);
-                } else {
-                    const { ChatModule } = await import('../js/chatModulePatient.js');
-                    window.chatModule = new ChatModule(socket, currentUser);
-                }
+            // Wait for socket to connect before initializing chat module
+            socket.on('connect', async () => {  // Add async here
+                console.log('Socket connected successfully');
 
-                // Load contacts
-                window.chatModule.loadChatContacts();
-            } catch (err) {
-                console.error('Failed to load chat module:', err);
-                alert('Failed to initialize chat. Please try again.');
-            }
+                // Load the correct chat module
+                try {
+                    if (currentUser.userType === 'doctor') {
+                        const { ChatModuleDoctor } = await import('../js/chatModuleDoctor.js');
+                        window.chatModule = new ChatModuleDoctor(socket, currentUser);
+                    } else {
+                        const { ChatModule } = await import('../js/chatModulePatient.js');
+                        window.chatModule = new ChatModule(socket, currentUser);
+                    }
+
+                    // Load contacts
+                    window.chatModule.loadChatContacts();
+                } catch (err) {
+                    console.error('Failed to load chat module:', err);
+                    alert('Failed to initialize chat. Please try again.');
+                }
+            });
 
             // Cleanup on unload
             window.addEventListener('beforeunload', () => {

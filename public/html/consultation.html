@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Consultation | Tele-Med</title>
+    <!-- Use CDN links to ensure resources load properly -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* Updated video container styles */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%;
+            /* 16:9 aspect ratio */
+            background-color: #000;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* Changed from cover to contain */
+            z-index: 1;
+        }
+
+        .local-video-container {
+            position: absolute;
+            width: 25%;
+            height: 25%;
+            bottom: 20px;
+            right: 20px;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 10;
+            background-color: #000;
+        }
+
+        .local-video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* Changed from cover to contain */
+            background-color: #000;
+            z-index: 1;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .video-controls .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .chat-container {
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .chat-message.sent {
+            align-self: flex-end;
+            background-color: #dcf8c6;
+        }
+
+        .chat-message.received {
+            align-self: flex-start;
+            background-color: #f1f0f0;
+        }
+
+        .chat-input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input-container input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+
+        /* Health Data Styles */
+        .health-data-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .health-metric {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-name {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #212529;
+        }
+
+        .metric-unit {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .metric-trend {
+            font-size: 1.2rem;
+            margin-top: 5px;
+        }
+
+        .trend-up {
+            color: #dc3545;
+        }
+
+        .trend-down {
+            color: #28a745;
+        }
+
+        .trend-stable {
+            color: #6c757d;
+        }
+
+        .health-graph-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Video Call Section -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Video Call with <span id="patientName">Loading...</span></h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="callDuration" class="badge bg-secondary">00:00</span>
+                            <span id="callStatus" class="badge bg-info">Initializing...</span>
+                            <span id="connectionStatus" class="badge bg-secondary">Disconnected</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="video-container">
+                            <video id="remoteVideo" autoplay playsinline></video>
+                            <div class="local-video-container">
+                                <video id="localVideo" autoplay playsinline muted></video>
+                                <div id="videoDebugInfo" class="video-debug-info" style="display: none;"></div>
+                            </div>
+                            <div class="video-controls">
+                                <button id="toggleAudio" class="btn btn-light">
+                                    <i class="bi bi-mic-fill"></i>
+                                </button>
+                                <button id="toggleVideo" class="btn btn-light">
+                                    <i class="bi bi-camera-video-fill"></i>
+                                </button>
+                                <button id="shareScreen" class="btn btn-light">
+                                    <i class="bi bi-display"></i>
+                                </button>
+                                <button id="refreshVideo" class="btn btn-warning">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button id="endCall" class="btn btn-danger">
+                                    <i class="bi bi-telephone-x-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Appointment Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Date:</strong> <span id="appointmentDate">Loading...</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Time:</strong> <span id="appointmentTime">Loading...</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Reason:</strong> <span id="appointmentReason">Loading...</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Doctor's Notes Section (Only visible to doctors) -->
+                <div id="doctorSection" class="card mb-4" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">Consultation Notes</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="notesForm">
+                            <div class="mb-3">
+                                <label for="subjectiveNotes" class="form-label">Subjective (Patient's
+                                    complaints)</label>
+                                <textarea class="form-control" id="subjectiveNotes" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="objectiveNotes" class="form-label">Objective (Examination findings)</label>
+                                <textarea class="form-control" id="objectiveNotes" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="assessmentNotes" class="form-label">Assessment (Diagnosis)</label>
+                                <textarea class="form-control" id="assessmentNotes" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="planNotes" class="form-label">Plan (Treatment)</label>
+                                <textarea class="form-control" id="planNotes" rows="2"></textarea>
+                            </div>
+                            <button type="button" id="saveNotes" class="btn btn-primary">Save Notes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Chat Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Chat</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="chat-container">
+                            <div id="chatMessages" class="chat-messages">
+                                <!-- Chat messages will be added here -->
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chatInput" class="form-control" placeholder="Type a message...">
+                                <button id="sendMessage" class="btn btn-primary">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Info Section (Only visible to doctors) -->
+                <div id="patientInfoSection" class="card mb-4" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">Patient Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="patientInfo">
+                            <!-- Patient info will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Health Data Section (Visible to both doctor and patient) -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Health Monitoring</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="health-data-container">
+                            <div class="health-metric">
+                                <div class="metric-name">Heart Rate</div>
+                                <div class="metric-value" id="heartRate">--</div>
+                                <div class="metric-unit">BPM</div>
+                                <div class="metric-trend" id="heartRateTrend"></div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-name">Blood Pressure</div>
+                                <div class="metric-value" id="bloodPressure">--</div>
+                                <div class="metric-unit">mmHg</div>
+                                <div class="metric-trend" id="bloodPressureTrend"></div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-name">Oxygen Saturation</div>
+                                <div class="metric-value" id="oxygenSaturation">--</div>
+                                <div class="metric-unit">%</div>
+                                <div class="metric-trend" id="oxygenTrend"></div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-name">Temperature</div>
+                                <div class="metric-value" id="temperature">--</div>
+                                <div class="metric-unit">°C</div>
+                                <div class="metric-trend" id="temperatureTrend"></div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-name">Respiration Rate</div>
+                                <div class="metric-value" id="respirationRate">--</div>
+                                <div class="metric-unit">/min</div>
+                                <div class="metric-trend" id="respirationTrend"></div>
+                            </div>
+                        </div>
+                        <div class="health-graph-container mt-3" style="display: block;">
+                            <canvas id="healthGraph" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="successMessage" class="alert alert-success position-fixed bottom-0 end-0 m-3" style="display: none;"></div>
+    <div id="errorMessage" class="alert alert-danger position-fixed bottom-0 end-0 m-3" style="display: none;"></div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="../js/consultation.js"></script>
+</body>
+
+</html>

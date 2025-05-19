@@ -1,28 +1,64 @@
 const uuid = require('uuid');
 const moment = require('moment'); // Add moment for date calculations
 
+// Add versioning support to resources
+function addMetadata(resource, version = '1') {
+    if (!resource.meta) {
+        resource.meta = {
+            versionId: version,
+            lastUpdated: new Date().toISOString()
+        };
+    }
+    return resource;
+}
+
 module.exports = {
     generateFhirId: () => `urn:uuid:${uuid.v4()}`,
 
     createPatientResource: (patientData) => {
-        return {
+        // More compliant FHIR Patient resource
+        const resource = {
             resourceType: 'Patient',
             id: patientData.fhir_id,
             identifier: [{
                 system: 'urn:ietf:rfc:3986',
                 value: patientData.id.toString()
             }],
+            active: true,
             name: [{
+                use: 'official',
                 family: patientData.last_name,
                 given: [patientData.first_name]
             }],
+            telecom: [
+                {
+                    system: 'phone',
+                    value: patientData.phone,
+                    use: 'home'
+                },
+                {
+                    system: 'email',
+                    value: patientData.email
+                }
+            ],
+            gender: patientData.gender || 'unknown',
             birthDate: patientData.date_of_birth,
-            gender: patientData.gender || 'unknown'
+            address: patientData.address ? [{
+                use: 'home',
+                text: patientData.address
+            }] : undefined,
+            extension: [
+                {
+                    url: 'http://example.org/fhir/StructureDefinition/patient-bloodType',
+                    valueString: patientData.blood_type || 'Unknown'
+                }
+            ]
         };
+        return addMetadata(resource);
     },
 
     createPractitionerResource: (doctorData) => {
-        return {
+        const resource = {
             resourceType: 'Practitioner',
             id: doctorData.fhir_id,
             identifier: [{
@@ -46,6 +82,7 @@ module.exports = {
                 }
             }]
         };
+        return addMetadata(resource);
     },
 
     createAppointmentResource: (appointmentData) => {
@@ -58,7 +95,7 @@ module.exports = {
             'noshow': 'noshow'
         };
 
-        return {
+        const resource = {
             resourceType: 'Appointment',
             id: appointmentData.fhir_id,
             status: statusMap[appointmentData.status.toLowerCase()] || 'proposed',
@@ -88,10 +125,11 @@ module.exports = {
                 }
             ]
         };
+        return addMetadata(resource);
     },
 
     createMedicationRequestResource: function (prescription) {
-        return {
+        const resource = {
             resourceType: "MedicationRequest",
             id: prescription.fhir_id,
             status: prescription.is_active ? "active" : "stopped",
@@ -130,6 +168,7 @@ module.exports = {
                 text: prescription.instructions
             }]
         };
+        return addMetadata(resource);
     },
 
     createOperationOutcome: (severity, code, details) => {

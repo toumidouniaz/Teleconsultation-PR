@@ -1,0 +1,55 @@
+/* Appointments page specific styles */
+.appointment-row:hover {
+    background-color: rgba(216, 231, 238, 0.3);
+    cursor: pointer;
+}
+
+.appointment-actions .btn {
+    margin-right: 5px;
+}
+
+/* Status badges */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-primary {
+    background-color: #007bff !important;
+}
+
+.badge.bg-dark {
+    background-color: #343a40 !important;
+}
+
+/* Modal styles */
+.modal-header {
+    background-color: #D8E7EE;
+    color: #394C5C;
+}
+
+/* Print styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #printable-area,
+    #printable-area * {
+        visibility: visible;
+    }
+
+    #printable-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+}
