@@ -626,7 +626,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Unhandled error during initialization:', error);
         showToast('Failed to initialize application', 'error');
     });
+
+    // Add event listener for chat button
+    document.getElementById('openChatBtn')?.addEventListener('click', function () {
+        window.location.href = this.getAttribute('href');
+    });
 });
-
-
-

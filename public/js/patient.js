@@ -589,6 +589,9 @@ document.getElementById('startTestConsultation')?.addEventListener('click', func
     }
     window.location.href = `/consultation?appointmentId=${appointmentId}`;
 });
+document.getElementById('openChatBtn')?.addEventListener('click', function () {
+    window.location.href = this.getAttribute('href');
+});
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', initializeApp);
